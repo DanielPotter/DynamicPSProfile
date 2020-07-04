@@ -1,0 +1,16 @@
+{
+    "$schema": "./ProfileConfig.Schema.json",
+    "defaults": {
+        // Settings to apply to all profiles.
+        "writeProfileOnStart": true
+    },
+    "profiles": [
+        {
+            "name": "Microsoft.PowerShell"
+        },
+        {
+            "name": "Microsoft.VSCode",
+            "localProfile": "WorkspaceProfile.ps1"
+        }
+    ]
+}

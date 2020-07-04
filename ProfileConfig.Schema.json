@@ -1,0 +1,78 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Dynamic PS Profile Settings Schema",
+    "definitions": {
+        "ProfilesObject": {
+            "description": "A list of profiles and default settings to apply to each of them.",
+            "type": "object",
+            "properties": {
+                "defaults": {
+                    "description": "The default settings to apply to all profiles These settings may be overridden by each profile.",
+                    "$ref": "#/definitions/ProfileOptions"
+                },
+                "profiles": {
+                    "$ref": "#/definitions/ProfileList"
+                }
+            }
+        },
+        "ProfileList": {
+            "description": "A list of profiles and the properties specific to each.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Profile"
+            }
+        },
+        "Profile": {
+            "description": "Properties specific to a unique profile.",
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "allOf": [
+                {
+                    "$ref": "#/definitions/ProfileOptions"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "description": "The name of the profile.",
+                            "type": "string"
+                        }
+                    }
+                }
+            ]
+        },
+        "ProfileOptions": {
+            "type": "object",
+            "properties": {
+                "autoImportModules": {
+                    "description": "Names or paths of modules to import upon profile load.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "localProfile": {
+                    "description": "A PowerShell script file to dot source upon profile load.",
+                    "type": "string"
+                },
+                "moduleLocations": {
+                    "description": "Directories to add to the PowerShell module path.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "useProfileSpecificHistory": {
+                    "description": "Whether command history should be limited to the current profile.",
+                    "type": "boolean"
+                },
+                "writeProfileOnStart": {
+                    "description": "Whether the name of the profile should be written to the host when the profile is imported.",
+                    "type": "boolean"
+                }
+            }
+        }
+    },
+    "$ref": "#/definitions/ProfilesObject"
+}

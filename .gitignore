@@ -1,0 +1,2 @@
+# Ignore the profiles directory to so that users can customize profiles from inside this repository.
+/Profiles
