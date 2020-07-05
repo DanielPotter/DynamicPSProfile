@@ -1,33 +1,11 @@
-# Execute the profile in a new scope to avoid adding variables to the global scope.
+# Execute the profile in a new scope to avoid adding unwanted variables to the global scope.
 & {
     $startTime = Get-Date
 
-    $config = Get-Content "$PSScriptRoot\Profiles\ProfileConfig.jsonc" | ConvertFrom-Json
+    # Dot source common commands.
+    . (Join-Path $PSScriptRoot Common.ps1)
 
-    # Start with default settings.
-    $profileProperties = [ordered] @{
-        showLongLoadTime      = $true
-        longLoadTimeThreshold = 1
-    }
-
-    # Set the configured defaults.
-    $config.defaults.PSObject.Properties | Where-Object { $_ } | ForEach-Object {
-        $profileProperties.($_.Name) = $_.Value
-    }
-
-    # Set the configured profile settings.
-    $config.profiles | Where-Object Name -EQ $Global:PSProfile | ForEach-Object {
-        $_.PSObject.Properties | Where-Object { $_ } | ForEach-Object {
-            if ($profileProperties.($_.Name) -is [array])
-            {
-                $profileProperties.($_.Name) += $_.Value
-            }
-            else
-            {
-                $profileProperties.($_.Name) = $_.Value
-            }
-        }
-    }
+    $profileProperties = Get-ProfileConfig -ProfileName $Global:PSProfile
 
     # If desired, print the name of the profile.
     if ($profileProperties.writeProfileOnStart)
@@ -42,7 +20,7 @@
         # Get the directory of the default history file.
         $historyDirectory = Split-Path (Get-PSReadLineOption).HistorySavePath
 
-        # Ensure the profile-specific hisotry file exists.
+        # Ensure the profile-specific history file exists.
         $profileHistoryPath = Join-Path $historyDirectory "$($Global:PSProfile)_history.txt"
         if (-not (Test-Path $profileHistoryPath))
         {
@@ -65,14 +43,16 @@
         $profileProperties.autoImportModules | Import-Module
     }
 
-    $allProfilesScriptPath = Join-Path $PSScriptRoot Profiles -AdditionalChildPath AllProfiles.ps1
+    $configPath = Get-ProfileConfigPath
+
+    $allProfilesScriptPath = Join-Path $configPath.ConfigDirectory AllProfiles.ps1
     if (Test-Path $allProfilesScriptPath)
     {
-        # Return the path of the global personal profile to be dot sourced.
+        # Return the path of the common personal profile to be dot sourced.
         $allProfilesScriptPath
     }
 
-    $profileScriptPath = Join-Path $PSScriptRoot Profiles -AdditionalChildPath ($Global:PSProfile + "_profile.ps1")
+    $profileScriptPath = Join-Path $configPath.ConfigDirectory ($Global:PSProfile + "_profile.ps1")
     if (Test-Path $profileScriptPath)
     {
         # Return the path of the profile-specific script to be dot sourced.

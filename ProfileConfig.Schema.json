@@ -65,7 +65,7 @@
                     }
                 },
                 "showLongLoadTime": {
-                    "description": "Whether long load times should be written to the host upon profile load.",
+                    "description": "Whether long load times should be written to the host upon profile load. By default, this is to true.",
                     "type": "boolean",
                     "default": true
                 },

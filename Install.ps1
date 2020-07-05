@@ -3,34 +3,35 @@ param ()
 
 process
 {
-    $personalProfileDirectoryPath = Join-Path $PSScriptRoot Profiles
-    $personalConfigFilePath = Join-Path $personalProfileDirectoryPath ProfileConfig.jsonc
-    $defaultConfigFilePath = Join-Path $PSScriptRoot ProfileConfig.Default.jsonc
+    # Dot source common commands.
+    . (Join-Path $PSScriptRoot Common.ps1)
+
+    $configPath = Get-ProfileConfigPath
 
     # Create the Profiles directory if it doesn't already exist.
-    if (-not (Test-Path $personalProfileDirectoryPath))
+    if (-not (Test-Path $configPath.ConfigDirectory))
     {
-        New-Item $personalProfileDirectoryPath -ItemType Directory | Out-Null
+        New-Item $configPath.ConfigDirectory -ItemType Directory | Out-Null
     }
 
     # Clone the default config if the personal config is empty.
-    if (-not (Test-Path $personalConfigFilePath) -or (Get-Item $personalConfigFilePath).Length -eq 0)
+    if (-not (Test-Path $configPath.ConfigFile) -or (Get-Item $configPath.ConfigFile).Length -eq 0)
     {
-        Get-Content $defaultConfigFilePath | ForEach-Object {
+        Get-Content $configPath.DefaultFile | ForEach-Object {
             # Replace the schema reference for the personal config file
             # because it will be placed in a child directory.
             $_ -replace [regex]::Escape('"$schema": "./ProfileConfig.Schema.json"'), '"$schema": "../ProfileConfig.Schema.json"'
-        } | Set-Content $personalConfigFilePath -ErrorAction Inquire
+        } | Set-Content $configPath.ConfigFile -ErrorAction Inquire
     }
 
     # Create the script that will be sourced for all profiles.
-    $personalScriptStubPath = Join-Path $personalProfileDirectoryPath AllProfiles.ps1
-    if (-not (Test-Path $personalScriptStubPath))
+    $allProfilesScriptPath = Join-Path $configPath.ConfigDirectory AllProfiles.ps1
+    if (-not (Test-Path $allProfilesScriptPath))
     {
-        New-Item $personalScriptStubPath -ItemType File | Out-Null
+        New-Item $allProfilesScriptPath -ItemType File | Out-Null
     }
 
-    # Grab the directory of the PowerShell profile directory.
+    # Grab the directory containing the PowerShell profile file.
     # This is usually in the user's home directory and differs
     # between Windows PowerShell and PowerShell core.
     $profileDirectory = Split-Path $PROFILE
@@ -41,36 +42,26 @@ process
         New-Item $profileDirectory -ItemType Directory | Out-Null
     }
 
-    # Get the config data.
-    $configContent = Get-Content $personalConfigFilePath -ErrorAction SilentlyContinue
-    if ($configContent)
-    {
-        $config = $configContent | ConvertFrom-Json
-    }
-    else
-    {
-        # Fall back to the default config file.
-        # Since the config file was just cloned, this is here to allow this
-        # script to run with -WhatIf where Set-Content won't actually run.
-        $config = Get-Content $defaultConfigFilePath | ConvertFrom-Json
-    }
-
     # Initialize all configured profiles.
-    $config.profiles | Select-Object -ExpandProperty name | ForEach-Object {
-        [string] $profileName = $_
+    Get-ProfileConfig | ForEach-Object {
+        [string] $profileName = $_.name
 
+        # Construct the name of the script using the same convention for existing profiles.
+        # The name of the default profile is Microsoft.PowerShell_profile.ps1.
         $profileScriptName = $profileName + "_profile.ps1"
 
         # Create a personal profile stub if needed.
-        $personalScriptStubPath = Join-Path $personalProfileDirectoryPath $profileScriptName
+        $personalScriptStubPath = Join-Path $configPath.ConfigDirectory $profileScriptName
         if (-not (Test-Path $personalScriptStubPath))
         {
             New-Item $personalScriptStubPath -ItemType File | Out-Null
         }
 
-        # Set up the content for profiles.
+        # Generate the content for this profile.
         $profileContent = @(
+            # Set the profile name so we can know which profile is currently active.
             "`$Global:PSProfile = '$profileName'"
+            # Dot source our profile script.
             ". '$PSScriptRoot\Profile.ps1'"
         )
 
