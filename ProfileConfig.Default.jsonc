@@ -11,7 +11,7 @@
         },
         {
             "name": "Microsoft.VSCode",
-            "localProfile": "WorkspaceProfile.ps1"
+            "workspaceProfile": "WorkspaceProfile.ps1"
         }
     ]
 }
