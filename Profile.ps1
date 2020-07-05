@@ -1,5 +1,7 @@
 # Wrap everything in a script block to avoid adding functions and variables to the global scope.
 & {
+    $startTime = Get-Date
+
     function getProfile
     {
         param (
@@ -10,7 +12,11 @@
 
         $config = Get-Content "$PSScriptRoot\Profiles\ProfileConfig.jsonc" | ConvertFrom-Json
 
-        $profileProperties = [System.Collections.Specialized.OrderedDictionary]::new()
+        # Start with default settings.
+        $profileProperties = [ordered] @{
+            showLongLoadTime      = $true
+            longLoadTimeThreshold = 1
+        }
 
         $config.defaults.PSObject.Properties | Where-Object { $_ } | ForEach-Object {
             $profileProperties.($_.Name) = $_.Value
@@ -82,6 +88,18 @@
     {
         $localProfile = Resolve-Path $profileProperties.localProfile
         $localProfile
+    }
+
+    $endTime = Get-Date
+
+    $loadTime = New-TimeSpan -Start $startTime -End $endTime
+
+    if ($profileProperties.showLongLoadTime)
+    {
+        if ($loadTime.TotalSeconds -gt $profileProperties.longLoadTimeThreshold)
+        {
+            Write-Host "Loading personal profile took $([int]$loadTime.TotalMilliseconds)ms."
+        }
     }
 } | ForEach-Object {
     if ($_)

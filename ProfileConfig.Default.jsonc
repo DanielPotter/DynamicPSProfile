@@ -6,7 +6,8 @@
     },
     "profiles": [
         {
-            "name": "Microsoft.PowerShell"
+            "name": "Microsoft.PowerShell",
+            "showLongLoadTime": false
         },
         {
             "name": "Microsoft.VSCode",

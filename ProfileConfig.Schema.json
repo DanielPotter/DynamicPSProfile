@@ -56,6 +56,11 @@
                     "description": "A PowerShell script file to dot source upon profile load.",
                     "type": "string"
                 },
+                "longLoadTimeThreshold": {
+                    "description": "The shortest length of time considered a long load time in seconds. By default, this is one second.",
+                    "type": "number",
+                    "default": 1
+                },
                 "moduleLocations": {
                     "description": "Directories to add to the PowerShell module path.",
                     "type": "array",
@@ -63,13 +68,20 @@
                         "type": "string"
                     }
                 },
+                "showLongLoadTime": {
+                    "description": "Whether long load times should be written to the host upon profile load.",
+                    "type": "boolean",
+                    "default": true
+                },
                 "useProfileSpecificHistory": {
                     "description": "Whether command history should be limited to the current profile.",
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 },
                 "writeProfileOnStart": {
                     "description": "Whether the name of the profile should be written to the host when the profile is imported.",
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 }
             }
         }
