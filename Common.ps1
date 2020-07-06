@@ -4,17 +4,17 @@
 function Get-ProfileConfigPath
 {
     $configDirectory = Join-Path $PSScriptRoot Profiles
-    $configFile = Join-Path $configDirectory ProfileConfig.jsonc
-    $defaultConfigFile = Join-Path $PSScriptRoot ProfileConfig.Default.jsonc
 
     return [PSCustomObject] @{
-        ConfigDirectory = $configDirectory
-        ConfigFile      = $configFile
-        DefaultFile     = $defaultConfigFile
+        ConfigDirectory   = $configDirectory
+        ConfigFile        = Join-Path $configDirectory ProfileConfig.jsonc
+        DefaultFile       = Join-Path $PSScriptRoot ProfileConfig.Default.jsonc
+        PreProfileScript  = Join-Path $configDirectory PreProfileScript.ps1
+        PostProfileScript = Join-Path $configDirectory PostProfileScript.ps1
     }
 }
 
-function Get-ProfileConfig
+function Get-ProfileInfo
 {
     param (
         [Parameter()]
@@ -41,8 +41,11 @@ function Get-ProfileConfig
 
         # Set the configured profile settings.
         $config.profiles | Where-Object Name -Like $ProfileName | ForEach-Object {
+            $profileConfig = $_
+            $name = $profileConfig.name
+
             # Start with default settings.
-            $profileProperties = [ordered] @{
+            $profileProperties = @{
                 showLongLoadTime      = $true
                 longLoadTimeThreshold = 1
             }
@@ -55,7 +58,8 @@ function Get-ProfileConfig
                 }
             }
 
-            $_.PSObject.Properties | ForEach-Object {
+            # Overrite the default settings with profile-specific settings.
+            $profileConfig.PSObject.Properties | ForEach-Object {
                 if ($profileProperties[$_.Name] -is [array])
                 {
                     $profileProperties[$_.Name] += $_.Value
@@ -66,7 +70,14 @@ function Get-ProfileConfig
                 }
             }
 
-            return $profileProperties
+            # Construct the name of the script that Profile.ps1 will execute for this profile.
+            $profileScriptName = "profile_$profileName.ps1"
+
+            return @{
+                Name       = $name
+                ScriptPath = Join-Path $path.ConfigDirectory $profileScriptName
+                Config     = $profileProperties
+            }
         }
     }
 }

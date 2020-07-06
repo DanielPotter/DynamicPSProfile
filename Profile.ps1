@@ -5,17 +5,17 @@
     # Dot source common commands.
     . (Join-Path $PSScriptRoot Common.ps1)
 
-    $profileProperties = Get-ProfileConfig -ProfileName $Global:PSProfile
+    $profileInfo = Get-ProfileInfo -ProfileName $Global:PSProfile
 
     # If desired, print the name of the profile.
-    if ($profileProperties.writeProfileOnStart)
+    if ($profileInfo.Config.writeProfileOnStart)
     {
         Write-Host "Profile: $Global:PSProfile"
         Write-Host
     }
 
     # If desired, set the history path to be specific to this profile.
-    if ($profileProperties.useProfileSpecificHistory)
+    if ($profileInfo.Config.useProfileSpecificHistory)
     {
         # Get the directory of the default history file.
         $historyDirectory = Split-Path (Get-PSReadLineOption).HistorySavePath
@@ -32,59 +32,71 @@
     }
 
     # Add configured module locations.
-    if ($profileProperties.moduleLocations)
+    if ($profileInfo.Config.moduleLocations)
     {
-        $env:PSModulePath += ";" + ($profileProperties.moduleLocations -join ";")
+        $env:PSModulePath += ";" + ($profileInfo.Config.moduleLocations -join ";")
     }
 
     # Import configured modules.
-    if ($profileProperties.autoImportModules)
+    if ($profileInfo.Config.autoImportModules)
     {
-        $profileProperties.autoImportModules | Import-Module
+        $profileInfo.Config.autoImportModules | Import-Module
     }
 
+    # Get the standard paths of config files and scripts from Common.ps1.
     $configPath = Get-ProfileConfigPath
 
-    $allProfilesScriptPath = Join-Path $configPath.ConfigDirectory AllProfiles.ps1
-    if (Test-Path $allProfilesScriptPath)
+    # If desired, execute the pre-profile config script.
+    if ($profileInfo.Config.usePreProfileConfigScript)
     {
-        # Return the path of the common personal profile to be dot sourced.
-        $allProfilesScriptPath
+        # Write the path to the pipeline so it can be dot sourced.
+        $configPath.PreProfileScript
     }
 
-    $profileScriptPath = Join-Path $configPath.ConfigDirectory ($Global:PSProfile + "_profile.ps1")
-    if (Test-Path $profileScriptPath)
+    # If desired, execute the profile config script.
+    if ($profileInfo.Config.useProfileConfigScript)
     {
-        # Return the path of the profile-specific script to be dot sourced.
-        $profileScriptPath
+        # Write the path to the pipeline so it can be dot sourced.
+        $profileInfo.ScriptPath
     }
 
-    if ($profileProperties.workspaceProfile -and (Test-Path $profileProperties.workspaceProfile))
+    # If specified, execute the workspace config script.
+    if ($profileInfo.Config.workspaceProfile)
     {
-        # Resolve the path because dot sourcing sometimes has trouble with relative paths.
-        $workspaceProfile = Resolve-Path $profileProperties.workspaceProfile
-
-        # Return the path of the workspace profile.
-        $workspaceProfile
+        # Write the path to the pipeline so it can be dot sourced.
+        $profileInfo.Config.workspaceProfile
     }
 
+    # If desired, execute the post-profile config script.
+    if ($profileInfo.Config.usePostProfileConfigScript)
+    {
+        # Write the path to the pipeline so it can be dot sourced.
+        $configPath.PostProfileScript
+    }
+
+    # We are done setting up the profile.
     $endTime = Get-Date
 
-    $loadTime = New-TimeSpan -Start $startTime -End $endTime
-
     # If the profile took a long time to load, notify the user.
-    if ($profileProperties.showLongLoadTime)
+    if ($profileInfo.Config.showLongLoadTime)
     {
-        if ($loadTime.TotalSeconds -gt $profileProperties.longLoadTimeThreshold)
+        $loadTime = New-TimeSpan -Start $startTime -End $endTime
+
+        # Display the loading time message if it took a greater time than the configured threshold.
+        # This threshold defaults to one second.
+        if ($loadTime.TotalSeconds -gt $profileInfo.Config.longLoadTimeThreshold)
         {
             Write-Host "Loading personal profile took $([int]$loadTime.TotalMilliseconds)ms."
         }
     }
 } | ForEach-Object {
-    if ($_)
+    if ($_ -and (Test-Path $_))
     {
+        # Resolve the path because dot sourcing sometimes has trouble with relative paths.
+        $absolutePath = Resolve-Path $_
+
         # Dot source the file into the global scope.
         # This works because ForEach-Object executes this block in the parent scope.
-        . $_
+        . $absolutePath
     }
 }

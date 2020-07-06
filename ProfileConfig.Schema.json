@@ -69,13 +69,25 @@
                     "type": "boolean",
                     "default": true
                 },
+                "usePreProfileConfigScript": {
+                    "description": "Whether a config script should be executed before any profile config script is executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation.",
+                    "type": "boolean"
+                },
+                "useProfileConfigScript": {
+                    "description": "Whether a profile-specific config script should be executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation.",
+                    "type": "boolean"
+                },
                 "useProfileSpecificHistory": {
                     "description": "Whether command history should be limited to the current profile.",
                     "type": "boolean",
                     "default": false
                 },
+                "usePostProfileConfigScript": {
+                    "description": "Whether a config script should be executed after any profile config script is executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation.",
+                    "type": "boolean"
+                },
                 "workspaceProfile": {
-                    "description": "A PowerShell script file to dot source upon profile load.",
+                    "description": "A PowerShell script file to dot source upon profile load. This will execute after the profile config script. Relative paths will be resolved using the initial working directory of the executing PowerShell process. If the file does not exist, this setting is ignored.",
                     "type": "string"
                 },
                 "writeProfileOnStart": {
