@@ -64,8 +64,8 @@ function Get-ProfileInfo
         $path = Get-ProfileConfigPath
 
         # Get the config data.
-        $configFile = Get-Item $path.ConfigFile
-        if ($configFile.Length -gt 0)
+        $configFile = Get-Item $path.ConfigFile -ErrorAction SilentlyContinue
+        if ($configFile -and $configFile.Length -gt 0)
         {
             $config = readJson $path.ConfigFile
         }
