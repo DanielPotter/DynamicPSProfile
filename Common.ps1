@@ -124,7 +124,7 @@ function Get-ProfileInfo
             }
 
             # Construct the name of the script that Profile.ps1 will execute for this profile.
-            $profileScriptName = "profile_$profileName.ps1"
+            $profileScriptName = "profile_$name.ps1"
 
             return @{
                 Name       = $name
@@ -157,6 +157,7 @@ function Initialize-ProfileConfig
         # Clone the default config if the personal config is empty.
         if (-not (Test-Path $configPath.ConfigFile) -or (Get-Item $configPath.ConfigFile).Length -eq 0)
         {
+            Write-Debug "Creating the config file."
             Get-Content $configPath.TemplateFile | ForEach-Object {
                 # Because we are using a relative path reference for the Json schema,
                 # we must fix the path when we copy the file to a child directory.
@@ -166,42 +167,59 @@ function Initialize-ProfileConfig
             } | Set-Content $configPath.ConfigFile -ErrorAction Inquire
         }
 
+        # While these flags are not necessary, they help reduce WhatIf spam.
+        # Otherwise, the user would be notified for the creation of these scripts on each profile.
+        # Without WhatIf, these scripts would only be created once.
+        [ref] $hasCreatedPreProfileConfigScript = $false
+        [ref] $hasCreatedPostProfileConfigScript = $false
+
         # Initialize all configured profiles.
         Get-ProfileInfo | ForEach-Object {
             $profileInfo = $_
             $profileName = $profileInfo.name
 
+            Write-Verbose "Initializing the config files for the '$profileName' profile."
+
             # If needed, create the config script that will be executed before the profile config script.
             # Only create the script if at least one profile is configured to use it.
-            if ($profileInfo.Config.usePreProfileConfigScript -and -not (Test-Path $configPath.PreProfileScript))
+            if ($profileInfo.Config.usePreProfileConfigScript -and `
+                    -not $hasCreatedPreProfileConfigScript.Value -and `
+                    -not (Test-Path $configPath.PreProfileScript))
             {
+                $hasCreatedPreProfileConfigScript.Value = $true
+                Write-Debug "Creating the pre-profile config script."
                 @(
                     "# This script will be executed before the profile config script."
                     "# Any functions or variables created in the script scope of this file"
                     "# will be added to the global scope."
-                ) | New-Item $configPath.PreProfileScript -ItemType File | Out-Null
+                ) | Set-Content $configPath.PreProfileScript
             }
 
             # If needed, create the profile config script that Profile.ps1 will execute.
             # Only create the script if the profile is configured to use it.
             if ($profileInfo.Config.useProfileConfigScript -and -not (Test-Path $profileInfo.ScriptPath))
             {
+                Write-Debug "Creating the profile config script."
                 @(
                     "# This profile config script will be executed while loading the $profileName profile."
                     "# Any functions or variables created in script scope of this file"
                     "# will be added to the global scope."
-                ) | New-Item $profileInfo.ScriptPath -ItemType File | Out-Null
+                ) | Set-Content $profileInfo.ScriptPath
             }
 
             # If needed, create the config script that will be executed after the profile config script.
             # Only create the script if at least one profile is configured to use it.
-            if ($profileInfo.Config.usePostProfileConfigScript -and -not (Test-Path $configPath.PostProfileScript))
+            if ($profileInfo.Config.usePostProfileConfigScript -and `
+                    -not $hasCreatedPostProfileConfigScript.Value -and `
+                    -not (Test-Path $configPath.PostProfileScript))
             {
+                $hasCreatedPostProfileConfigScript.Value = $true
+                Write-Debug "Creating the post-profile config script."
                 @(
                     "# This script will be executed after the profile config script."
                     "# Any functions or variables created in the script scope of this file"
                     "# will be added to the global scope."
-                ) | New-Item $configPath.PostProfileScript -ItemType File | Out-Null
+                ) | Set-Content $configPath.PostProfileScript
             }
         }
     }

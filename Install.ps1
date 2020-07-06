@@ -27,6 +27,8 @@ process
         $profileInfo = $_
         $profileName = $profileInfo.name
 
+        Write-Verbose "Initializing the '$profileName' profile script."
+
         # Construct the name of the profile script using the same convention for existing profiles.
         # The name of the default profile is Microsoft.PowerShell_profile.ps1.
         $profileScriptName = $profileName + "_profile.ps1"
