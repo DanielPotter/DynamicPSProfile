@@ -34,7 +34,13 @@
     # Add configured module locations.
     if ($profileInfo.Config.moduleLocations)
     {
-        $env:PSModulePath += ";" + ($profileInfo.Config.moduleLocations -join ";")
+        # Only add each module location once. If the location already exists in the path, skip it.
+        $profileInfo.Config.moduleLocations | ForEach-Object {
+            if ($env:PSModulePath -notmatch "(^|;)$([regex]::Escape($_))(;|$)")
+            {
+                $env:PSModulePath += ";$_"
+            }
+        }
     }
 
     # Import configured modules.
