@@ -1,6 +1,10 @@
 # Common commands for managing profiles.
 # These commands are not intended for use outside the scripts in this repository.
 
+<#
+.SYNOPSIS
+Gets the paths of various standard config files and scripts.
+#>
 function Get-ProfileConfigPath
 {
     $configDirectory = Join-Path $PSScriptRoot Profiles
@@ -14,6 +18,17 @@ function Get-ProfileConfigPath
     }
 }
 
+<#
+.SYNOPSIS
+Gets the configured profiles.
+
+.DESCRIPTION
+Long description
+
+.PARAMETER ProfileName
+The name of the profile to get.
+If not specified, this will default to '*' result in all profiles being returned.
+#>
 function Get-ProfileInfo
 {
     param (
@@ -115,6 +130,78 @@ function Get-ProfileInfo
                 Name       = $name
                 ScriptPath = Join-Path $path.ConfigDirectory $profileScriptName
                 Config     = $profileProperties
+            }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Creates config files if necessary.
+#>
+function Initialize-ProfileConfig
+{
+    [CmdletBinding(SupportsShouldProcess)]
+    param ()
+
+    process
+    {
+        $configPath = Get-ProfileConfigPath
+
+        # Create the Profiles directory if it doesn't already exist.
+        if (-not (Test-Path $configPath.ConfigDirectory))
+        {
+            New-Item $configPath.ConfigDirectory -ItemType Directory | Out-Null
+        }
+
+        # Clone the default config if the personal config is empty.
+        if (-not (Test-Path $configPath.ConfigFile) -or (Get-Item $configPath.ConfigFile).Length -eq 0)
+        {
+            Get-Content $configPath.TemplateFile | ForEach-Object {
+                # Because we are using a relative path reference for the Json schema,
+                # we must fix the path when we copy the file to a child directory.
+                $_ -replace `
+                    [regex]::Escape('"$schema": "./ProfileConfig.Schema.json"'), `
+                    '"$schema": "../ProfileConfig.Schema.json"'
+            } | Set-Content $configPath.ConfigFile -ErrorAction Inquire
+        }
+
+        # Initialize all configured profiles.
+        Get-ProfileInfo | ForEach-Object {
+            $profileInfo = $_
+            $profileName = $profileInfo.name
+
+            # If needed, create the config script that will be executed before the profile config script.
+            # Only create the script if at least one profile is configured to use it.
+            if ($profileInfo.Config.usePreProfileConfigScript -and -not (Test-Path $configPath.PreProfileScript))
+            {
+                @(
+                    "# This script will be executed before the profile config script."
+                    "# Any functions or variables created in the script scope of this file"
+                    "# will be added to the global scope."
+                ) | New-Item $configPath.PreProfileScript -ItemType File | Out-Null
+            }
+
+            # If needed, create the profile config script that Profile.ps1 will execute.
+            # Only create the script if the profile is configured to use it.
+            if ($profileInfo.Config.useProfileConfigScript -and -not (Test-Path $profileInfo.ScriptPath))
+            {
+                @(
+                    "# This profile config script will be executed while loading the $profileName profile."
+                    "# Any functions or variables created in script scope of this file"
+                    "# will be added to the global scope."
+                ) | New-Item $profileInfo.ScriptPath -ItemType File | Out-Null
+            }
+
+            # If needed, create the config script that will be executed after the profile config script.
+            # Only create the script if at least one profile is configured to use it.
+            if ($profileInfo.Config.usePostProfileConfigScript -and -not (Test-Path $configPath.PostProfileScript))
+            {
+                @(
+                    "# This script will be executed after the profile config script."
+                    "# Any functions or variables created in the script scope of this file"
+                    "# will be added to the global scope."
+                ) | New-Item $configPath.PostProfileScript -ItemType File | Out-Null
             }
         }
     }
