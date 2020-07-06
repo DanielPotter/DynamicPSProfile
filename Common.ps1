@@ -23,20 +23,58 @@ function Get-ProfileInfo
         $ProfileName = "*"
     )
 
+    begin
+    {
+        function readJson
+        {
+            [CmdletBinding()]
+            param (
+                [Parameter(
+                    Mandatory,
+                    Position = 0
+                )]
+                [string]
+                $Path
+            )
+
+            if ($PSVersionTable.PSVersion.Major -ge 6)
+            {
+                return Get-Content $Path | ConvertFrom-Json
+            }
+            else
+            {
+                # The ConvertFrom-Json command in PowerShell 6 supports comments and trailing commas.
+                # We must strip them out if we are executing in an older version PowerShell.
+                $content = Get-Content $Path -Raw
+
+                # Remove all line and block comments that are not in strings.
+                # Source: https://stackoverflow.com/a/57092959/2503153
+                $content = $content -replace '(?m)(?<=^([^"]|"[^"]*")*)//.*' -replace '(?ms)/\*.*?\*/'
+
+                # Remove trailing commas that are not in strings.
+                $content = $content -replace '(?m)(?<=^([^"]|"[^"]*")*),(?=\s*[}\]])'
+
+                return $content | ConvertFrom-Json
+            }
+        }
+    }
+
     process
     {
         $path = Get-ProfileConfigPath
 
         # Get the config data.
-        $configContent = Get-Content $path.ConfigFile -ErrorAction SilentlyContinue
-        if ($configContent)
+        $configFile = Get-Item $path.ConfigFile
+        if ($configFile.Length -gt 0)
         {
-            $config = $configContent | ConvertFrom-Json
+            $config = readJson $path.ConfigFile
         }
-        else
+
+        # If we failed to read the config file, fall back to the template config file.
+        # This is expected on first-run.
+        if (-not $config)
         {
-            # Fall back to the template config file.
-            $config = Get-Content $path.TemplateFile | ConvertFrom-Json
+            $config = readJson $path.TemplateFile
         }
 
         # Set the configured profile settings.
