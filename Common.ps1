@@ -8,7 +8,7 @@ function Get-ProfileConfigPath
     return [PSCustomObject] @{
         ConfigDirectory   = $configDirectory
         ConfigFile        = Join-Path $configDirectory ProfileConfig.jsonc
-        DefaultFile       = Join-Path $PSScriptRoot ProfileConfig.Default.jsonc
+        TemplateFile      = Join-Path $PSScriptRoot ProfileConfig.Template.jsonc
         PreProfileScript  = Join-Path $configDirectory PreProfileScript.ps1
         PostProfileScript = Join-Path $configDirectory PostProfileScript.ps1
     }
@@ -35,8 +35,8 @@ function Get-ProfileInfo
         }
         else
         {
-            # Fall back to the default config file.
-            $config = Get-Content $path.DefaultFile | ConvertFrom-Json
+            # Fall back to the template config file.
+            $config = Get-Content $path.TemplateFile | ConvertFrom-Json
         }
 
         # Set the configured profile settings.

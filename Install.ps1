@@ -17,7 +17,7 @@ process
     # Clone the default config if the personal config is empty.
     if (-not (Test-Path $configPath.ConfigFile) -or (Get-Item $configPath.ConfigFile).Length -eq 0)
     {
-        Get-Content $configPath.DefaultFile | ForEach-Object {
+        Get-Content $configPath.TemplateFile | ForEach-Object {
             # Replace the schema reference for the personal config file
             # because it will be placed in a child directory.
             $_ -replace [regex]::Escape('"$schema": "./ProfileConfig.Schema.json"'), '"$schema": "../ProfileConfig.Schema.json"'
