@@ -20,24 +20,14 @@ function Get-ProfileConfigPath
 
 <#
 .SYNOPSIS
-Gets the configured profiles.
+Gets the active configuration.
 
-.DESCRIPTION
-Long description
-
-.PARAMETER ProfileName
-The name of the profile to get.
-If not specified, this will default to '*' result in all profiles being returned.
+.NOTES
+This function accounts for the current version of PowerShell so that
+comments do not invalidate the configuration Json.
 #>
-function Get-ProfileInfo
+function Get-Config
 {
-    param (
-        [Parameter()]
-        [SupportsWildcards()]
-        [string]
-        $ProfileName = "*"
-    )
-
     begin
     {
         function readJson
@@ -54,12 +44,13 @@ function Get-ProfileInfo
 
             if ($PSVersionTable.PSVersion.Major -ge 6)
             {
+                # The ConvertFrom-Json command in PowerShell 6 supports comments and trailing commas.
                 return Get-Content $Path | ConvertFrom-Json
             }
             else
             {
-                # The ConvertFrom-Json command in PowerShell 6 supports comments and trailing commas.
-                # We must strip them out if we are executing in an older version PowerShell.
+                # We must strip out comments and trailing commas if we are executing
+                # in an older version PowerShell.
                 $content = Get-Content $Path -Raw
 
                 # Remove all line and block comments that are not in strings.
@@ -91,6 +82,34 @@ function Get-ProfileInfo
         {
             $config = readJson $path.TemplateFile
         }
+
+        return $config
+    }
+}
+
+<#
+.SYNOPSIS
+Gets the configured profiles.
+
+.PARAMETER ProfileName
+The name of the profile to get.
+If not specified, this will default to '*' result in all profiles being returned.
+#>
+function Get-ProfileInfo
+{
+    param (
+        [Parameter()]
+        [SupportsWildcards()]
+        [string]
+        $ProfileName = "*"
+    )
+
+    process
+    {
+        $path = Get-ProfileConfigPath
+
+        # Get the config data.
+        $config = Get-Config
 
         # Set the configured profile settings.
         $config.profiles | Where-Object Name -Like $ProfileName | ForEach-Object {
@@ -173,6 +192,13 @@ function Initialize-ProfileConfig
         [ref] $hasCreatedPreProfileConfigScript = $false
         [ref] $hasCreatedPostProfileConfigScript = $false
 
+        # Define the prefix common to all profile config scripts.
+        $scriptPrefix = @(
+            "# Script parameters are optional and may be removed if not used."
+            "param ([string] `$ProfileName)"
+            ""
+        )
+
         # Initialize all configured profiles.
         Get-ProfileInfo | ForEach-Object {
             $profileInfo = $_
@@ -189,6 +215,7 @@ function Initialize-ProfileConfig
                 $hasCreatedPreProfileConfigScript.Value = $true
                 Write-Debug "Creating the pre-profile config script."
                 @(
+                    $scriptPrefix
                     "# This script will be executed before the profile config script."
                     "# Any functions or variables created in the script scope of this file"
                     "# will be added to the global scope."
@@ -201,6 +228,7 @@ function Initialize-ProfileConfig
             {
                 Write-Debug "Creating the profile config script."
                 @(
+                    $scriptPrefix
                     "# This profile config script will be executed while loading the $profileName profile."
                     "# Any functions or variables created in script scope of this file"
                     "# will be added to the global scope."
@@ -216,6 +244,7 @@ function Initialize-ProfileConfig
                 $hasCreatedPostProfileConfigScript.Value = $true
                 Write-Debug "Creating the post-profile config script."
                 @(
+                    $scriptPrefix
                     "# This script will be executed after the profile config script."
                     "# Any functions or variables created in the script scope of this file"
                     "# will be added to the global scope."

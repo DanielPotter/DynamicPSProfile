@@ -64,34 +64,42 @@
                         "type": "string"
                     }
                 },
+                "overwritePowerShellProfile": {
+                    "description": "Whether a profile script should be created in the $PROFILE directory. For preexisting PowerShell hosts such as Microsoft.PowerShell, this option will allow PowerShell instances of those hosts to automatically import the dynamic profile. By default, this is false.",
+                    "type": "boolean",
+                    "default": false
+                },
                 "showLongLoadTime": {
                     "description": "Whether long load times should be written to the host upon profile load. By default, this is to true.",
                     "type": "boolean",
                     "default": true
                 },
                 "usePreProfileConfigScript": {
-                    "description": "Whether a config script should be executed before any profile config script is executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation.",
-                    "type": "boolean"
+                    "description": "Whether a config script should be executed before any profile config script is executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation. By default, this is false.",
+                    "type": "boolean",
+                    "default": false
                 },
                 "useProfileConfigScript": {
-                    "description": "Whether a profile-specific config script should be executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation.",
-                    "type": "boolean"
+                    "description": "Whether a profile-specific config script should be executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation. By default, this is false.",
+                    "type": "boolean",
+                    "default": false
                 },
                 "useProfileSpecificHistory": {
-                    "description": "Whether command history should be limited to the current profile.",
+                    "description": "Whether command history should be limited to the current profile. By default, this is false.",
                     "type": "boolean",
                     "default": false
                 },
                 "usePostProfileConfigScript": {
-                    "description": "Whether a config script should be executed after any profile config script is executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation.",
-                    "type": "boolean"
+                    "description": "Whether a config script should be executed after any profile config script is executed. The script will live in the Profiles directory of this repository. Any functions and variables created in the top-level scope will be added to the global scope. This script will be generated upon installation. By default, this is false.",
+                    "type": "boolean",
+                    "default": false
                 },
                 "workspaceProfile": {
                     "description": "A PowerShell script file to dot source upon profile load. This will execute after the profile config script. Relative paths will be resolved using the initial working directory of the executing PowerShell process. If the file does not exist, this setting is ignored.",
                     "type": "string"
                 },
                 "writeProfileOnStart": {
-                    "description": "Whether the name of the profile should be written to the host when the profile is imported.",
+                    "description": "Whether the name of the profile should be written to the host when the profile is imported. By default, this is false.",
                     "type": "boolean",
                     "default": false
                 }

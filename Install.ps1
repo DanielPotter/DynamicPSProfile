@@ -22,6 +22,20 @@ process
         New-Item $profileDirectory -ItemType Directory | Out-Null
     }
 
+    # Determine the path for the parameterized profile script.
+    # We will place it in the same folder as the default profile so that we can easily find it when
+    # starting a PowerShell instance in NoProfile mode.
+    $parameterizedProfileScriptPath = Join-Path $profileDirectory DynamicProfile.ps1
+
+    # Set the content of the script that will execute the specified the profile.
+    @(
+        "param ([string] `$ProfileName)"
+        # Set the path to the parameterized profile.  This will make it easy to reimport.
+        "Set-Variable DynamicProfile '$parameterizedProfileScriptPath' -Scope Global -Option ReadOnly -Force"
+        # Dot source our profile script.
+        ". '$PSScriptRoot\Profile.ps1' -ProfileName `$ProfileName"
+    ) | Set-Content $parameterizedProfileScriptPath -Force -ErrorAction Inquire
+
     # Initialize all configured profiles.
     Get-ProfileInfo | ForEach-Object {
         $profileInfo = $_
@@ -29,19 +43,25 @@ process
 
         Write-Verbose "Initializing the '$profileName' profile script."
 
-        # Construct the name of the profile script using the same convention for existing profiles.
-        # The name of the default profile is Microsoft.PowerShell_profile.ps1.
-        $profileScriptName = $profileName + "_profile.ps1"
+        if ($profileInfo.Config.overwritePowerShellProfile)
+        {
+            # Construct the name of the profile script using the same convention for existing profiles.
+            # The name of the default profile is Microsoft.PowerShell_profile.ps1.
+            $profileScriptName = $profileName + "_profile.ps1"
 
-        # Set content of the PowerShell profile script.
-        $profileScriptPath = Join-Path $profileDirectory $profileScriptName
+            # Set content of the PowerShell profile script.
+            $profileScriptPath = Join-Path $profileDirectory $profileScriptName
 
-        # Set the content of the script that will set up the profile.
-        @(
-            # Set the profile name so we can know which profile is currently active.
-            "`$Global:PSProfile = '$profileName'"
-            # Dot source our profile script.
-            ". '$PSScriptRoot\Profile.ps1'"
-        ) | Set-Content $profileScriptPath -Force -ErrorAction Inquire
+            # Set the content of the script that will set up the profile.
+            @(
+                # Set the path to the parameterized profile.  This will make it easy to reimport.
+                "Set-Variable DynamicProfile '$parameterizedProfileScriptPath' -Scope Global -Option ReadOnly -Force"
+                # Update the PROFILE variable to point to our new script.
+                # This will make it easy to reimport this specific profile.
+                "Set-Variable PROFILE '$profileScriptPath' -Scope Global -Option ReadOnly -Force"
+                # Dot source our profile script.
+                ". '$PSScriptRoot\Profile.ps1' -ProfileName '$profileName'"
+            ) | Set-Content $profileScriptPath -Force -ErrorAction Inquire
+        }
     }
 }

@@ -7,10 +7,12 @@
     "profiles": [
         {
             "name": "Microsoft.PowerShell",
+            "overwritePowerShellProfile": true,
             "showLongLoadTime": false
         },
         {
             "name": "Microsoft.VSCode",
+            "overwritePowerShellProfile": true,
             "workspaceProfile": "WorkspaceProfile.ps1"
         }
     ]

@@ -1,16 +1,35 @@
-# Execute the profile in a new scope to avoid adding unwanted variables to the global scope.
+param (
+    [Parameter(
+        Mandatory,
+        Position = 0
+    )]
+    [Alias("Name")]
+    [string]
+    $ProfileName
+)
+
+# Execute in a new scope to avoid adding unwanted variables to the global scope.
 & {
     $startTime = Get-Date
 
     # Dot source common commands.
     . (Join-Path $PSScriptRoot Common.ps1)
 
-    $profileInfo = Get-ProfileInfo -ProfileName $Global:PSProfile
+    $profileInfo = Get-ProfileInfo -ProfileName $ProfileName
+
+    if (-not $profileInfo)
+    {
+        Write-Error "A profile with the name '$ProfileName' does not exist."
+        return
+    }
+
+    # Explicitly set the name of the current profile in the global scope.
+    Set-Variable DynamicProfileName $profileInfo.Name -Scope Global -Option ReadOnly -Force
 
     # If desired, print the name of the profile.
     if ($profileInfo.Config.writeProfileOnStart)
     {
-        Write-Host "Profile: $Global:PSProfile"
+        Write-Host "Profile: $DynamicProfileName"
         Write-Host
     }
 
@@ -21,7 +40,7 @@
         $historyDirectory = Split-Path (Get-PSReadLineOption).HistorySavePath
 
         # Ensure the profile-specific history file exists.
-        $profileHistoryPath = Join-Path $historyDirectory "$($Global:PSProfile)_history.txt"
+        $profileHistoryPath = Join-Path $historyDirectory "$($DynamicProfileName)_history.txt"
         if (-not (Test-Path $profileHistoryPath))
         {
             New-Item $profileHistoryPath -ItemType File | Out-Null
@@ -103,6 +122,9 @@
 
         # Dot source the file into the global scope.
         # This works because ForEach-Object executes this block in the parent scope.
-        . $absolutePath
+        . $absolutePath $DynamicProfileName
+
+        # Remove our temporary variable from the global scope.
+        Remove-Variable absolutePath
     }
 }

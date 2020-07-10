@@ -13,7 +13,7 @@ To use a profile, simply start PowerShell and dot source one of the generated pr
 Windows Terminal makes it easy to use custom PowerShell profiles. Simply add a new Terminal profile with the following command line replacing `Terminal.Custom` with the name of the desired profile.
 
 ```batch
-pwsh.exe -NoExit -NoProfile -Command "& { . (Join-Path (Split-Path $PROFILE) Terminal.Custom_profile.ps1) }"
+pwsh.exe -NoExit -NoProfile -Command ". { . (Join-Path (Split-Path $PROFILE) DynamicProfile.ps1) Terminal.Custom }"
 ```
 
 Note: The same arguments may be used with `powershell.exe`.
