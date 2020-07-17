@@ -56,9 +56,6 @@ process
             @(
                 # Set the path to the parameterized profile.  This will make it easy to reimport.
                 "Set-Variable DynamicProfile '$parameterizedProfileScriptPath' -Scope Global -Option ReadOnly -Force"
-                # Update the PROFILE variable to point to our new script.
-                # This will make it easy to reimport this specific profile.
-                "Set-Variable PROFILE '$profileScriptPath' -Scope Global -Option ReadOnly -Force"
                 # Dot source our profile script.
                 ". '$PSScriptRoot\Profile.ps1' -ProfileName '$profileName'"
             ) | Set-Content $profileScriptPath -Force -ErrorAction Inquire
